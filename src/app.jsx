@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, Download, PackageOpen, Tag, Layers } from 'lucide-react';
 
+// --- 中文键名到内部类型的映射 ---
+const TYPE_MAP = {
+    '福利品区': 'welfare',
+    '孤品区': 'orphan',
+    '滞销品区': 'unsaleable'
+};
+
+const LABEL_MAP = {
+    'welfare': '福利品',
+    'orphan': '孤品',
+    'unsaleable': '滞销品'
+};
+
 // --- 组件：卡片容器 ---
 const Card = ({ children, className = "" }) => (
     <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${className}`}>
@@ -107,7 +120,7 @@ export default function App() {
     const [configLoaded, setConfigLoaded] = useState(false);
     const [configError, setConfigError] = useState(null);
 
-    // 配置状态
+    // 配置状态（已解析为内部格式）
     const [extractConfig, setExtractConfig] = useState({});
     const [rangeConfig, setRangeConfig] = useState({});
 
@@ -134,6 +147,31 @@ export default function App() {
         }
     }, []);
 
+    // --- 解析中文配置格式 ---
+
+    // 解析区间字符串: "1-5:1/46-50:1/96-100:1" => [{start, end, step}, ...]
+    const parseRangeString = (rangeStr) => {
+        if (!rangeStr || typeof rangeStr !== 'string') return [];
+        const segments = rangeStr.split('/');
+        return segments.map(seg => {
+            const [range, stepStr] = seg.split(':');
+            const [start, end] = range.split('-').map(Number);
+            const step = stepStr ? parseInt(stepStr) : 1;
+            return { start, end, step };
+        }).filter(r => !isNaN(r.start) && !isNaN(r.end));
+    };
+
+    // 解析提取配置字符串: "重复/5" 或 "不重复"
+    const parseExtractString = (extractStr) => {
+        if (!extractStr || typeof extractStr !== 'string') return { isRepeatable: false };
+        if (extractStr.startsWith('重复')) {
+            const parts = extractStr.split('/');
+            const count = parts[1] ? parseInt(parts[1]) : 5;
+            return { isRepeatable: true, extractCount: count };
+        }
+        return { isRepeatable: false };
+    };
+
     // --- 加载配置文件 ---
     useEffect(() => {
         const loadConfigs = async () => {
@@ -147,11 +185,29 @@ export default function App() {
                     throw new Error('配置文件加载失败');
                 }
 
-                const extractData = await extractRes.json();
-                const rangeData = await rangeRes.json();
+                const extractRaw = await extractRes.json();
+                const rangeRaw = await rangeRes.json();
 
-                setExtractConfig(extractData);
-                setRangeConfig(rangeData);
+                // 转换中文键名为内部格式
+                const parsedExtract = {};
+                const parsedRange = {};
+
+                Object.entries(extractRaw).forEach(([cnKey, value]) => {
+                    const internalKey = TYPE_MAP[cnKey];
+                    if (internalKey) {
+                        parsedExtract[internalKey] = parseExtractString(value);
+                    }
+                });
+
+                Object.entries(rangeRaw).forEach(([cnKey, value]) => {
+                    const internalKey = TYPE_MAP[cnKey];
+                    if (internalKey) {
+                        parsedRange[internalKey] = parseRangeString(value);
+                    }
+                });
+
+                setExtractConfig(parsedExtract);
+                setRangeConfig(parsedRange);
                 setConfigLoaded(true);
             } catch (error) {
                 setConfigError(error.message);
@@ -164,19 +220,9 @@ export default function App() {
 
     // --- 辅助计算函数 ---
 
-    // 从简化格式解析区间：[[start, end, step], ...]
-    const parseRanges = (rangeArray) => {
-        if (!rangeArray || !Array.isArray(rangeArray)) return [];
-        return rangeArray.map(r => ({
-            start: r[0],
-            end: r[1],
-            step: r[2] || 1
-        }));
-    };
-
     // 计算总 ID 数量
     const getTotalIdCount = (type) => {
-        const ranges = parseRanges(rangeConfig[type]);
+        const ranges = rangeConfig[type] || [];
         return ranges.reduce((sum, r) => {
             if (r.end < r.start || r.step <= 0) return sum;
             return sum + Math.floor((r.end - r.start) / r.step) + 1;
@@ -196,7 +242,7 @@ export default function App() {
 
     // 生成所有目标 ID
     const generateTargetIds = (type) => {
-        const ranges = parseRanges(rangeConfig[type]);
+        const ranges = rangeConfig[type] || [];
         let ids = [];
         ranges.forEach(r => {
             if (r.step <= 0) return;
@@ -336,7 +382,7 @@ export default function App() {
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
                             <PackageOpen className="text-blue-600" />
-                            商品智能分拣系统 <span className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">v4.1</span>
+                            商品智能分拣系统 <span className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">v4.2</span>
                         </h1>
                         <p className="text-slate-500 text-sm mt-1 flex items-center gap-2">
                             {libLoaded ? <span className="text-green-600 font-medium">● 系统就绪</span> : '⏳ 加载组件...'}

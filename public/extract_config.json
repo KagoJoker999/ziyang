@@ -1,12 +1,5 @@
 {
-    "welfare": {
-        "isRepeatable": true,
-        "extractCount": 5
-    },
-    "orphan": {
-        "isRepeatable": false
-    },
-    "unsaleable": {
-        "isRepeatable": false
-    }
+    "福利品区": "重复/5",
+    "孤品区": "不重复",
+    "滞销品区": "不重复"
 }
