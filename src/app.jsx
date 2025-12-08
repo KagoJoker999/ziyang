@@ -14,6 +14,31 @@ const LABEL_MAP = {
     'unsaleable': '滞销品'
 };
 
+// --- 解析中文配置格式（纯函数，移到组件外部）---
+
+// 解析区间字符串: "1-5:1/46-50:1/96-100:1" => [{start, end, step}, ...]
+const parseRangeString = (rangeStr) => {
+    if (!rangeStr || typeof rangeStr !== 'string') return [];
+    const segments = rangeStr.split('/');
+    return segments.map(seg => {
+        const [range, stepStr] = seg.split(':');
+        const [start, end] = range.split('-').map(Number);
+        const step = stepStr ? parseInt(stepStr) : 1;
+        return { start, end, step };
+    }).filter(r => !isNaN(r.start) && !isNaN(r.end));
+};
+
+// 解析提取配置字符串: "重复/5" 或 "不重复"
+const parseExtractString = (extractStr) => {
+    if (!extractStr || typeof extractStr !== 'string') return { isRepeatable: false };
+    if (extractStr.startsWith('重复')) {
+        const parts = extractStr.split('/');
+        const count = parts[1] ? parseInt(parts[1]) : 5;
+        return { isRepeatable: true, extractCount: count };
+    }
+    return { isRepeatable: false };
+};
+
 // --- 组件：卡片容器 ---
 const Card = ({ children, className = "" }) => (
     <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${className}`}>
@@ -146,31 +171,6 @@ export default function App() {
             document.body.appendChild(script);
         }
     }, []);
-
-    // --- 解析中文配置格式 ---
-
-    // 解析区间字符串: "1-5:1/46-50:1/96-100:1" => [{start, end, step}, ...]
-    const parseRangeString = (rangeStr) => {
-        if (!rangeStr || typeof rangeStr !== 'string') return [];
-        const segments = rangeStr.split('/');
-        return segments.map(seg => {
-            const [range, stepStr] = seg.split(':');
-            const [start, end] = range.split('-').map(Number);
-            const step = stepStr ? parseInt(stepStr) : 1;
-            return { start, end, step };
-        }).filter(r => !isNaN(r.start) && !isNaN(r.end));
-    };
-
-    // 解析提取配置字符串: "重复/5" 或 "不重复"
-    const parseExtractString = (extractStr) => {
-        if (!extractStr || typeof extractStr !== 'string') return { isRepeatable: false };
-        if (extractStr.startsWith('重复')) {
-            const parts = extractStr.split('/');
-            const count = parts[1] ? parseInt(parts[1]) : 5;
-            return { isRepeatable: true, extractCount: count };
-        }
-        return { isRepeatable: false };
-    };
 
     // --- 加载配置文件 ---
     const loadConfigs = useCallback(async () => {
