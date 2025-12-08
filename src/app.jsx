@@ -471,21 +471,17 @@ export default function App() {
                                 { key: 'unsaleable', label: '滞销品', color: 'orange' }
                             ].map(({ key, label, color }) => {
                                 const info = stats.details[key];
+                                const isSuccess = info.status !== 'warning';
                                 return (
-                                    <div key={key} className={`p-3 rounded border relative ${info.status === 'warning' ? 'bg-red-50 border-red-200' : `bg-${color}-50 border-${color}-100`}`}>
-                                        <div className={`text-xs font-bold uppercase text-${color}-600 mb-1 flex justify-between`}>
+                                    <div key={key} className={`p-3 rounded border relative ${isSuccess ? `bg-${color}-50 border-${color}-100` : 'bg-red-50 border-red-200'}`}>
+                                        <div className={`text-xs font-bold uppercase text-${color}-600 mb-2 flex justify-between items-center`}>
                                             {label}
-                                            {info.status === 'warning' && <AlertCircle size={14} className="text-red-500" />}
+                                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {isSuccess ? '✓ 提取成功' : '✗ 提取失败'}
+                                            </span>
                                         </div>
-                                        <div className="flex justify-between items-end">
-                                            <div>
-                                                <div className="text-xs text-slate-500">生成ID: {info.idCount}</div>
-                                                <div className={`text-xl font-bold text-${color}-900`}>实分: {info.actual}</div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-[10px] text-slate-400">需提取源</div>
-                                                <div className="font-mono text-sm">{info.extractNeed}</div>
-                                            </div>
+                                        <div className={`text-xl font-bold text-${color}-900`}>
+                                            实际分配: {info.actual}
                                         </div>
                                     </div>
                                 );
