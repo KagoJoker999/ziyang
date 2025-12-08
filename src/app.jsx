@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, Download, PackageOpen, Tag, Layers } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, Download, PackageOpen, Tag, Layers, RefreshCw } from 'lucide-react';
 
 // --- 中文键名到内部类型的映射 ---
 const TYPE_MAP = {
@@ -173,50 +173,53 @@ export default function App() {
     };
 
     // --- 加载配置文件 ---
-    useEffect(() => {
-        const loadConfigs = async () => {
-            try {
-                const [extractRes, rangeRes] = await Promise.all([
-                    fetch('./extract_config.json'),
-                    fetch('./range_config.json')
-                ]);
+    const loadConfigs = useCallback(async () => {
+        try {
+            // 添加时间戳防止缓存
+            const timestamp = new Date().getTime();
+            const [extractRes, rangeRes] = await Promise.all([
+                fetch(`./extract_config.json?t=${timestamp}`),
+                fetch(`./range_config.json?t=${timestamp}`)
+            ]);
 
-                if (!extractRes.ok || !rangeRes.ok) {
-                    throw new Error('配置文件加载失败');
-                }
-
-                const extractRaw = await extractRes.json();
-                const rangeRaw = await rangeRes.json();
-
-                // 转换中文键名为内部格式
-                const parsedExtract = {};
-                const parsedRange = {};
-
-                Object.entries(extractRaw).forEach(([cnKey, value]) => {
-                    const internalKey = TYPE_MAP[cnKey];
-                    if (internalKey) {
-                        parsedExtract[internalKey] = parseExtractString(value);
-                    }
-                });
-
-                Object.entries(rangeRaw).forEach(([cnKey, value]) => {
-                    const internalKey = TYPE_MAP[cnKey];
-                    if (internalKey) {
-                        parsedRange[internalKey] = parseRangeString(value);
-                    }
-                });
-
-                setExtractConfig(parsedExtract);
-                setRangeConfig(parsedRange);
-                setConfigLoaded(true);
-            } catch (error) {
-                setConfigError(error.message);
-                console.error('配置加载失败:', error);
+            if (!extractRes.ok || !rangeRes.ok) {
+                throw new Error('配置文件加载失败');
             }
-        };
 
-        loadConfigs();
+            const extractRaw = await extractRes.json();
+            const rangeRaw = await rangeRes.json();
+
+            // 转换中文键名为内部格式
+            const parsedExtract = {};
+            const parsedRange = {};
+
+            Object.entries(extractRaw).forEach(([cnKey, value]) => {
+                const internalKey = TYPE_MAP[cnKey];
+                if (internalKey) {
+                    parsedExtract[internalKey] = parseExtractString(value);
+                }
+            });
+
+            Object.entries(rangeRaw).forEach(([cnKey, value]) => {
+                const internalKey = TYPE_MAP[cnKey];
+                if (internalKey) {
+                    parsedRange[internalKey] = parseRangeString(value);
+                }
+            });
+
+            setExtractConfig(parsedExtract);
+            setRangeConfig(parsedRange);
+            setConfigLoaded(true);
+            setConfigError(null);
+        } catch (error) {
+            setConfigError(error.message);
+            console.error('配置加载失败:', error);
+        }
     }, []);
+
+    useEffect(() => {
+        loadConfigs();
+    }, [loadConfigs]);
 
     // --- 辅助计算函数 ---
 
@@ -384,11 +387,16 @@ export default function App() {
                             <PackageOpen className="text-blue-600" />
                             商品智能分拣系统 <span className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">v4.2</span>
                         </h1>
-                        <p className="text-slate-500 text-sm mt-1 flex items-center gap-2">
-                            {libLoaded ? <span className="text-green-600 font-medium">● 系统就绪</span> : '⏳ 加载组件...'}
-                            <span className="text-slate-300">|</span>
-                            <span className="text-green-600">配置已加载</span>
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                            <p className="text-slate-500 text-sm flex items-center gap-2">
+                                {libLoaded ? <span className="text-green-600 font-medium">● 系统就绪</span> : '⏳ 加载组件...'}
+                                <span className="text-slate-300">|</span>
+                                <span className="text-green-600">配置已加载</span>
+                            </p>
+                            <button onClick={loadConfigs} className="text-slate-500 hover:text-blue-600 hover:bg-blue-50 px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors border border-slate-200">
+                                <RefreshCw size={12} /> 重新加载配置
+                            </button>
+                        </div>
                     </div>
                     <div className="flex gap-2">
                         <button onClick={() => window.print()} className="bg-white border hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
