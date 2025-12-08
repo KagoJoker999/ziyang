@@ -486,44 +486,44 @@ export default function App() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
-                                        <th className="p-4 w-24">序号 (ID)</th>
-                                        <th className="p-4 w-24">分类</th>
-                                        <th className="p-4 w-32">预览</th>
-                                        <th className="p-4">商品名称</th>
-                                        <th className="p-4 w-20">可用数</th>
-                                        <th className="p-4 w-40">商品编码</th>
-                                        <th className="p-4 w-32">仓位</th>
+                                        <th className="p-3 w-20 text-center">序号</th>
+                                        <th className="p-3 w-20 text-center">分类</th>
+                                        <th className="p-3 w-20 text-center">预览</th>
+                                        <th className="p-3">商品名称</th>
+                                        <th className="p-3 w-16 text-center">可用数</th>
+                                        <th className="p-3 w-36">商品编码</th>
+                                        <th className="p-3 w-24">仓位</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 text-sm">
                                     {results.map((item, idx) => (
                                         <tr key={idx} className="hover:bg-slate-50 transition-colors group">
-                                            <td className="p-4 font-mono font-bold text-lg text-slate-700">
+                                            <td className="p-3 font-mono font-bold text-center text-slate-700">
                                                 #{item.id}
                                             </td>
-                                            <td className="p-4">
+                                            <td className="p-3 text-center">
                                                 <span className={`px-2 py-1 rounded text-xs font-medium ${item.color}`}>
                                                     {item.category}
                                                 </span>
                                             </td>
-                                            <td className="p-4">
+                                            <td className="p-3 text-center">
                                                 {item.image ? (
                                                     <img
                                                         src={item.image}
                                                         alt=""
-                                                        className="w-16 h-16 object-cover rounded border"
+                                                        className="w-12 h-12 object-cover rounded border mx-auto"
                                                         referrerPolicy="no-referrer"
                                                         onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                                     />
                                                 ) : null}
-                                                <div className={`w-16 h-16 bg-slate-100 rounded border items-center justify-center ${item.image ? 'hidden' : 'flex'}`}>
-                                                    <ImageIcon className="text-slate-300" size={24} />
+                                                <div className={`w-12 h-12 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image ? 'hidden' : 'flex'}`}>
+                                                    <ImageIcon className="text-slate-300" size={20} />
                                                 </div>
                                             </td>
-                                            <td className="p-4 font-medium">{item.name}</td>
-                                            <td className="p-4 text-center font-bold text-blue-600">{item.stock}</td>
-                                            <td className="p-4 font-mono text-xs text-slate-500">{item.code}</td>
-                                            <td className="p-4 text-slate-600">{item.location}</td>
+                                            <td className="p-3 font-medium">{item.name}</td>
+                                            <td className="p-3 text-center font-bold text-blue-600">{item.stock}</td>
+                                            <td className="p-3 font-mono text-xs text-slate-500">{item.code}</td>
+                                            <td className="p-3 text-slate-600 text-sm">{item.location}</td>
                                         </tr>
                                     ))}
                                 </tbody>
