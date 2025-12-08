@@ -483,47 +483,47 @@ export default function App() {
                 {results.length > 0 && (
                     <Card>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                            <table className="w-full text-left border-collapse table-fixed">
                                 <thead>
                                     <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
-                                        <th className="p-3 w-20 text-center">序号</th>
-                                        <th className="p-3 w-20 text-center">分类</th>
-                                        <th className="p-3 w-20 text-center">预览</th>
-                                        <th className="p-3">商品名称</th>
+                                        <th className="p-3 w-16 text-center">序号</th>
+                                        <th className="p-3 w-16 text-center">分类</th>
+                                        <th className="p-3 w-24 text-center">预览</th>
+                                        <th className="p-3 w-48">商品名称</th>
                                         <th className="p-3 w-16 text-center">可用数</th>
-                                        <th className="p-3 w-36">商品编码</th>
-                                        <th className="p-3 w-24">仓位</th>
+                                        <th className="p-3 w-28">商品编码</th>
+                                        <th className="p-3 w-20">仓位</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 text-sm">
                                     {results.map((item, idx) => (
                                         <tr key={idx} className="hover:bg-slate-50 transition-colors group">
-                                            <td className="p-3 font-mono font-bold text-center text-slate-700">
+                                            <td className="p-2 font-mono font-bold text-center text-slate-700">
                                                 #{item.id}
                                             </td>
-                                            <td className="p-3 text-center">
-                                                <span className={`px-2 py-1 rounded text-xs font-medium ${item.color}`}>
+                                            <td className="p-2 text-center">
+                                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${item.color}`}>
                                                     {item.category}
                                                 </span>
                                             </td>
-                                            <td className="p-3 text-center">
+                                            <td className="p-2 text-center">
                                                 {item.image ? (
                                                     <img
                                                         src={item.image}
                                                         alt=""
-                                                        className="w-12 h-12 object-cover rounded border mx-auto"
+                                                        className="w-20 h-20 object-cover rounded border mx-auto"
                                                         referrerPolicy="no-referrer"
                                                         onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                                     />
                                                 ) : null}
-                                                <div className={`w-12 h-12 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image ? 'hidden' : 'flex'}`}>
-                                                    <ImageIcon className="text-slate-300" size={20} />
+                                                <div className={`w-20 h-20 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image ? 'hidden' : 'flex'}`}>
+                                                    <ImageIcon className="text-slate-300" size={28} />
                                                 </div>
                                             </td>
-                                            <td className="p-3 font-medium">{item.name}</td>
-                                            <td className="p-3 text-center font-bold text-blue-600">{item.stock}</td>
-                                            <td className="p-3 font-mono text-xs text-slate-500">{item.code}</td>
-                                            <td className="p-3 text-slate-600 text-sm">{item.location}</td>
+                                            <td className="p-2 font-medium text-sm">{item.name}</td>
+                                            <td className="p-2 text-center font-bold text-blue-600">{item.stock}</td>
+                                            <td className="p-2 font-mono text-xs text-slate-500">{item.code}</td>
+                                            <td className="p-2 text-slate-600 text-xs">{item.location}</td>
                                         </tr>
                                     ))}
                                 </tbody>
