@@ -328,16 +328,22 @@ export default function App() {
                 }
 
                 if (sourceItem) {
-                    const name = getField(sourceItem, '商品名称', 'Name', 'Title', 'name', 'title');
+                    let name = getField(sourceItem, '商品名称', 'Name', 'Title', 'name', 'title');
+                    // 提取「」之间的内容
+                    const match = name.match(/「([^」]*)」/);
+                    if (match) {
+                        name = `「${match[1]}」`;
+                    }
                     const code = getField(sourceItem, '商品编码', 'Code', 'SKU', 'code', 'sku');
                     const location = getField(sourceItem, '主仓位', 'Location', '仓位', 'location');
                     const image = getField(sourceItem, '图片', '图片链接', 'Image', 'Pic', 'image', 'url');
+                    const stock = getNumberField(sourceItem, '可用数', '数量', '库存', 'Stock', 'Qty');
 
                     allResults.push({
                         id: currentId,
                         category: label,
                         categoryType: type,
-                        name, code, location, image, color
+                        name, code, location, image, color, stock
                     });
                 }
             });
@@ -498,7 +504,8 @@ export default function App() {
                                         <th className="p-4 w-24">分类</th>
                                         <th className="p-4 w-32">预览</th>
                                         <th className="p-4">商品名称</th>
-                                        <th className="p-4 w-40">编码 (SKU)</th>
+                                        <th className="p-4 w-20">可用数</th>
+                                        <th className="p-4 w-40">商品编码</th>
                                         <th className="p-4 w-32">仓位</th>
                                     </tr>
                                 </thead>
@@ -528,6 +535,7 @@ export default function App() {
                                                 </div>
                                             </td>
                                             <td className="p-4 font-medium">{item.name}</td>
+                                            <td className="p-4 text-center font-bold text-blue-600">{item.stock}</td>
                                             <td className="p-4 font-mono text-xs text-slate-500">{item.code}</td>
                                             <td className="p-4 text-slate-600">{item.location}</td>
                                         </tr>
