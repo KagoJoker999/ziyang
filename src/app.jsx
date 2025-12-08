@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, Download, PackageOpen, Tag, Layers } from 'lucide-react';
+import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, PackageOpen, Tag, Layers } from 'lucide-react';
 
 // --- 中文键名到内部类型的映射 ---
 const TYPE_MAP = {
@@ -399,14 +399,9 @@ export default function App() {
                             <span className="text-green-600">配置已加载</span>
                         </p>
                     </div>
-                    <div className="flex gap-2">
-                        <button onClick={() => window.print()} className="bg-white border hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
-                            <Download size={16} /> 导出结果
-                        </button>
-                        <button onClick={calculate} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md font-medium flex items-center gap-2 transition-transform active:scale-95">
-                            <Calculator size={18} /> 执行分配
-                        </button>
-                    </div>
+                    <button onClick={calculate} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md font-medium flex items-center gap-2 transition-transform active:scale-95">
+                        <Calculator size={18} /> 执行分配
+                    </button>
                 </header>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
