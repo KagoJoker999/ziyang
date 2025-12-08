@@ -1,0 +1,12 @@
+{
+    "welfare": {
+        "isRepeatable": true,
+        "extractCount": 5
+    },
+    "orphan": {
+        "isRepeatable": false
+    },
+    "unsaleable": {
+        "isRepeatable": false
+    }
+}
