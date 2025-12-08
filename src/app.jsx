@@ -515,12 +515,17 @@ export default function App() {
                                             </td>
                                             <td className="p-4">
                                                 {item.image ? (
-                                                    <img src={item.image} alt="" className="w-16 h-16 object-cover rounded border" />
-                                                ) : (
-                                                    <div className="w-16 h-16 bg-slate-100 rounded border flex items-center justify-center">
-                                                        <ImageIcon className="text-slate-300" size={24} />
-                                                    </div>
-                                                )}
+                                                    <img
+                                                        src={item.image}
+                                                        alt=""
+                                                        className="w-16 h-16 object-cover rounded border"
+                                                        referrerPolicy="no-referrer"
+                                                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                                    />
+                                                ) : null}
+                                                <div className={`w-16 h-16 bg-slate-100 rounded border items-center justify-center ${item.image ? 'hidden' : 'flex'}`}>
+                                                    <ImageIcon className="text-slate-300" size={24} />
+                                                </div>
                                             </td>
                                             <td className="p-4 font-medium">{item.name}</td>
                                             <td className="p-4 font-mono text-xs text-slate-500">{item.code}</td>
