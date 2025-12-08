@@ -1,0 +1,35 @@
+{
+    "welfare": {
+        "ranges": [
+            {
+                "start": 1000,
+                "end": 1100,
+                "step": 1
+            }
+        ],
+        "isRepeatable": true,
+        "extractCount": 5
+    },
+    "orphan": {
+        "ranges": [
+            {
+                "start": 2000,
+                "end": 2050,
+                "step": 2
+            }
+        ],
+        "isRepeatable": false,
+        "extractCount": 0
+    },
+    "unsaleable": {
+        "ranges": [
+            {
+                "start": 3000,
+                "end": 3020,
+                "step": 1
+            }
+        ],
+        "isRepeatable": false,
+        "extractCount": 0
+    }
+}
