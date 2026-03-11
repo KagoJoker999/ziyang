@@ -721,7 +721,7 @@ export default function App() {
                 {results.length > 0 && (
                     <Card>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse table-fixed">
+                            <table className="w-full text-left border-collapse table-fixed min-w-[800px]">
                                 <thead>
                                     <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
                                         <th className="p-3 w-16 text-center">序号</th>
@@ -886,7 +886,7 @@ export default function App() {
                             ) : (
                                 <Card>
                                     <div className="overflow-x-auto">
-                                        <table className="w-full text-left border-collapse table-fixed">
+                                        <table className="w-full text-left border-collapse table-fixed min-w-[800px]">
                                             <thead>
                                                 <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
                                                     <th className="p-3 w-16 text-center">序号</th>
