@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, PackageOpen, Tag, Layers, UploadCloud, History, X, MapPin } from 'lucide-react';
+import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, PackageOpen, Tag, Layers, UploadCloud, History, X, MapPin, Copy } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 // --- 中文键名到内部类型的映射 ---
@@ -164,6 +164,8 @@ export default function App() {
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [historyData, setHistoryData] = useState([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+    const [isCopyingCodes, setIsCopyingCodes] = useState(false);
     const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
 
     // --- 加载 XLSX 库 ---
@@ -443,9 +445,46 @@ export default function App() {
         }
     };
 
+    // --- Supabase 批量复制商品编码逻辑 ---
+    const handleCopyProductCodes = async () => {
+        setIsCopyingCodes(true);
+        try {
+            const { data, error } = await supabase
+                .from('zhiyang_allocations')
+                .select('product_code');
+
+            if (error) {
+                console.error("查询商品编码失败:", error);
+                throw new Error("无法查询商品编码");
+            }
+
+            if (!data || data.length === 0) {
+                alert("历史记录中没有任何商品编码");
+                return;
+            }
+
+            const codes = data
+                .map(item => item.product_code)
+                .filter(code => code !== null && code !== undefined && String(code).trim() !== "");
+
+            if (codes.length === 0) {
+                alert("没有找到有效的商品编码");
+                return;
+            }
+
+            const codeString = codes.join(',');
+            await navigator.clipboard.writeText(codeString);
+            alert(`成功复制 ${codes.length} 个商品编码到剪贴板！`);
+        } catch (error) {
+            alert(error.message || "复制过程中发生错误");
+        } finally {
+            setIsCopyingCodes(false);
+        }
+    };
+
     // --- Supabase 仓位批量更新逻辑 ---
     const handleLocationUpdate = (e) => {
-        const file = e.target.files[0];
+        const file = e.target.files ? e.target.files[0] : null;
         if (!file) return;
 
         if (!window.XLSX) {
@@ -511,18 +550,26 @@ export default function App() {
                 if (failCount > 0) msg += `\n失败：${failCount} 条`;
                 alert(msg);
 
+                if (successCount > 0) {
+                    setIsLocationModalOpen(false);
+                }
+
             } catch (err) {
                 alert(`仓位更新错误: ${err.message}`);
             } finally {
                 setIsUpdatingLocation(false);
-                e.target.value = ''; // 重置 file input
+                if (e.target && e.target.value !== undefined) {
+                    e.target.value = ''; // 重置 file input
+                }
             }
         };
 
         reader.onerror = () => {
             alert("文件读取失败");
             setIsUpdatingLocation(false);
-            e.target.value = '';
+            if (e.target && e.target.value !== undefined) {
+                e.target.value = '';
+            }
         };
 
         reader.readAsArrayBuffer(file);
@@ -567,11 +614,12 @@ export default function App() {
                     </div>
                     
                     <div className="flex items-center gap-2">
-                        <label className={`px-4 py-2 rounded-lg shadow-sm font-medium flex items-center gap-2 transition-transform cursor-pointer ${isUpdatingLocation ? 'bg-emerald-300 text-white cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'}`}>
-                            <MapPin size={18} />
-                            {isUpdatingLocation ? '更新中...' : '仓位更新'}
-                            <input type="file" accept=".xlsx, .xls" className="hidden" disabled={isUpdatingLocation} onChange={handleLocationUpdate} />
-                        </label>
+                        <button 
+                            onClick={() => setIsLocationModalOpen(true)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-sm font-medium flex items-center gap-2 transition-transform active:scale-95"
+                        >
+                            <MapPin size={18} /> 仓位更新
+                        </button>
                         
                         <button 
                             onClick={fetchHistory}
@@ -722,6 +770,89 @@ export default function App() {
                     </Card>
                 )}
             </div>
+
+            {/* 仓位更新 Modal */}
+            {isLocationModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden">
+                        <div className="px-6 py-4 border-b flex items-center justify-between bg-emerald-50">
+                            <h2 className="text-lg font-bold flex items-center gap-2 text-emerald-800">
+                                <MapPin className="text-emerald-600" />
+                                仓位更新与编码提取
+                            </h2>
+                            <button 
+                                onClick={() => setIsLocationModalOpen(false)}
+                                className="text-emerald-400 hover:text-emerald-700 transition-colors p-1"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            {/* 批量复制商品编码区域 */}
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
+                                <h3 className="text-sm font-bold text-slate-700 mb-2">步骤 1：获取最新商品编码</h3>
+                                <p className="text-xs text-slate-500 mb-4">
+                                    一键复制历史排品中所有的商品编码，方便前往仓储系统等其他平台查询或导出仓位数据。
+                                </p>
+                                <button
+                                    onClick={handleCopyProductCodes}
+                                    disabled={isCopyingCodes}
+                                    className={`w-full py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors border shadow-sm ${
+                                        isCopyingCodes 
+                                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' 
+                                            : 'bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50 active:bg-emerald-100'
+                                    }`}
+                                >
+                                    <Copy size={18} />
+                                    {isCopyingCodes ? '提取复制中...' : '批量复制商品编码 (逗号分隔)'}
+                                </button>
+                            </div>
+
+                            {/* 拖拽/上传更新仓位区域 */}
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
+                                <h3 className="text-sm font-bold text-slate-700 mb-2">步骤 2：导入包含最新仓位的表格</h3>
+                                <p className="text-xs text-slate-500 mb-4">
+                                    上传表格进行匹配更新，表格中需包含「<span className="font-semibold text-slate-700">商品名称</span>」与「<span className="font-semibold text-slate-700">主仓位 或 仓位</span>」两列。
+                                </p>
+                                
+                                <label 
+                                    className={`relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                                        isUpdatingLocation 
+                                            ? 'border-emerald-200 bg-emerald-50 opacity-70 cursor-not-allowed'
+                                            : 'border-emerald-300 bg-white hover:bg-emerald-50 hover:border-emerald-400'
+                                    }`}
+                                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (isUpdatingLocation) return;
+                                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                            const fakeEvent = { target: { files: e.dataTransfer.files } };
+                                            handleLocationUpdate(fakeEvent);
+                                        }
+                                    }}
+                                >
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6 pointer-events-none">
+                                        <MapPin className={`w-8 h-8 mb-3 ${isUpdatingLocation ? 'text-emerald-400 animate-pulse' : 'text-emerald-500'}`} />
+                                        <p className="mb-1 text-sm text-slate-600 font-medium">
+                                            {isUpdatingLocation ? '正在处理并更新...' : '点击或将 Excel 文件拖拽到这里'}
+                                        </p>
+                                        <p className="text-xs text-slate-400">支持 .xlsx 或 .xls 文件</p>
+                                    </div>
+                                    <input 
+                                        type="file" 
+                                        className="hidden" 
+                                        accept=".xlsx, .xls"
+                                        disabled={isUpdatingLocation}
+                                        onChange={handleLocationUpdate}
+                                    />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* 历史记录 Modal */}
             {isHistoryModalOpen && (
