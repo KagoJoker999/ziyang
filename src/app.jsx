@@ -167,6 +167,7 @@ export default function App() {
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
     const [isCopyingCodes, setIsCopyingCodes] = useState(false);
     const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+    const [zoomedImage, setZoomedImage] = useState(null);
 
     // --- 加载 XLSX 库 ---
     useEffect(() => {
@@ -749,12 +750,16 @@ export default function App() {
                                                     <img
                                                         src={item.image}
                                                         alt=""
-                                                        className="w-20 h-20 object-cover rounded border mx-auto"
+                                                        className="w-20 h-20 object-cover rounded border mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+                                                        onClick={() => setZoomedImage(item.image)}
                                                         referrerPolicy="no-referrer"
                                                         onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                                     />
                                                 ) : null}
-                                                <div className={`w-20 h-20 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image ? 'hidden' : 'flex'}`}>
+                                                <div 
+                                                    className={`w-20 h-20 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image ? 'hidden' : 'flex'} ${item.image ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                                    onClick={() => item.image && setZoomedImage(item.image)}
+                                                >
                                                     <ImageIcon className="text-slate-300" size={28} />
                                                 </div>
                                             </td>
@@ -793,7 +798,7 @@ export default function App() {
                             <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
                                 <h3 className="text-sm font-bold text-slate-700 mb-2">步骤 1：获取最新商品编码</h3>
                                 <p className="text-xs text-slate-500 mb-4">
-                                    一键复制历史排品中所有的商品编码，方便前往仓储系统等其他平台查询或导出仓位数据。
+                                    一键复制历史排品中所有的商品编码，方便前往 ERP 导出仓位数据。注意：手机端无法复制。
                                 </p>
                                 <button
                                     onClick={handleCopyProductCodes}
@@ -921,12 +926,16 @@ export default function App() {
                                                                     <img
                                                                         src={item.image_url}
                                                                         alt=""
-                                                                        className="w-20 h-20 object-cover rounded border mx-auto"
+                                                                        className="w-20 h-20 object-cover rounded border mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+                                                                        onClick={() => setZoomedImage(item.image_url)}
                                                                         referrerPolicy="no-referrer"
                                                                         onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                                                     />
                                                                 ) : null}
-                                                                <div className={`w-20 h-20 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image_url ? 'hidden' : 'flex'}`}>
+                                                                <div 
+                                                                    className={`w-20 h-20 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image_url ? 'hidden' : 'flex'} ${item.image_url ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                                                    onClick={() => item.image_url && setZoomedImage(item.image_url)}
+                                                                >
                                                                     <ImageIcon className="text-slate-300" size={28} />
                                                                 </div>
                                                             </td>
@@ -947,6 +956,28 @@ export default function App() {
                             )}
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* 图片放大 Modal */}
+            {zoomedImage && (
+                <div 
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-75 p-4 cursor-zoom-out"
+                    onClick={() => setZoomedImage(null)}
+                >
+                    <img 
+                        src={zoomedImage} 
+                        alt="Zoomed" 
+                        referrerPolicy="no-referrer"
+                        className="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-default" 
+                        onClick={(e) => e.stopPropagation()} 
+                    />
+                    <button 
+                        className="absolute top-4 right-4 text-white bg-black bg-opacity-50 hover:bg-opacity-80 rounded-full p-2 transition-colors cursor-pointer"
+                        onClick={() => setZoomedImage(null)}
+                    >
+                        <X size={32} />
+                    </button>
                 </div>
             )}
         </div>
