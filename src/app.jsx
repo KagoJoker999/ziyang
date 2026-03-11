@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, PackageOpen, Tag, Layers } from 'lucide-react';
+import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, PackageOpen, Tag, Layers, CloudUpload, History, X } from 'lucide-react';
+import { supabase } from './lib/supabase';
 
 // --- 中文键名到内部类型的映射 ---
 const TYPE_MAP = {
@@ -158,6 +159,12 @@ export default function App() {
 
     const [results, setResults] = useState([]);
     const [stats, setStats] = useState(null);
+    
+    // Supabase 相关状态
+    const [isUploading, setIsUploading] = useState(false);
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [historyData, setHistoryData] = useState([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     // --- 加载 XLSX 库 ---
     useEffect(() => {
@@ -362,6 +369,80 @@ export default function App() {
         setStats(statistics);
     };
 
+    // --- Supabase 上传逻辑 ---
+    const handleUpload = async () => {
+        if (!results || results.length === 0) {
+            alert("没有可上传的排品结果！请先执行分配。");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            // 1. 清空旧数据 (因为 Supabase 不允许没有过滤条件的全局 Delete，我们匹配不为空的 ID 即可全局删除，或者提供一个永远为 true 的条件)
+            // 注意：如果您的 Supabase RLS (Row Level Security) 被激活了，匿名删除可能会被拒绝。请确保关闭 RLS 或允许 anon 角色删改该表。
+            const { error: deleteError } = await supabase
+                .from('zhiyang_allocations')
+                .delete()
+                .neq('product_id', -1); // 删除 product_id 不等于 -1 的所有行 (即清空所有)
+
+            if (deleteError) {
+                console.error("删除旧数据失败:", deleteError);
+                throw new Error("清空历史记录失败，请检查数据库权限设置");
+            }
+
+            // 2. 构造要插入的数据
+            const recordsToInsert = results.map(item => ({
+                product_id: item.id,
+                category: item.category,
+                category_type: item.categoryType,
+                product_name: item.name,
+                product_code: item.code,
+                location: item.location,
+                image_url: item.image,
+                stock: item.stock
+            }));
+
+            // 3. 批量插入新数据
+            const { error: insertError } = await supabase
+                .from('zhiyang_allocations')
+                .insert(recordsToInsert);
+
+            if (insertError) {
+                console.error("插入新数据失败:", insertError);
+                throw new Error("插入数据失败");
+            }
+
+            alert("上传成功！");
+        } catch (error) {
+            alert(error.message || "上传过程中发生错误");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // --- Supabase 查看历史逻辑 ---
+    const fetchHistory = async () => {
+        setIsHistoryModalOpen(true);
+        setIsLoadingHistory(true);
+        try {
+            const { data, error } = await supabase
+                .from('zhiyang_allocations')
+                .select('*')
+                .order('product_id', { ascending: true });
+
+            if (error) {
+                console.error("加载历史记录失败:", error);
+                throw new Error("无法加载历史记录");
+            }
+
+            setHistoryData(data || []);
+        } catch (error) {
+            alert(error.message || "加载历史记录发生错误");
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    };
+
     // 配置加载中或错误状态
     if (!configLoaded) {
         return (
@@ -399,9 +480,27 @@ export default function App() {
                             <span className="text-green-600">配置已加载</span>
                         </p>
                     </div>
-                    <button onClick={calculate} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md font-medium flex items-center gap-2 transition-transform active:scale-95">
-                        <Calculator size={18} /> 执行分配
-                    </button>
+                    
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={fetchHistory}
+                            className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-2 rounded-lg shadow-sm font-medium flex items-center gap-2 transition-transform active:scale-95"
+                        >
+                            <History size={18} /> 历史排品
+                        </button>
+                        
+                        <button 
+                            onClick={handleUpload}
+                            disabled={isUploading || results.length === 0}
+                            className={`px-4 py-2 rounded-lg shadow-sm font-medium flex items-center gap-2 transition-transform ${isUploading || results.length === 0 ? 'bg-indigo-300 cursor-not-allowed text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'}`}
+                        >
+                            <CloudUpload size={18} /> {isUploading ? '上传中...' : '保存排品结果'}
+                        </button>
+
+                        <button onClick={calculate} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md font-medium flex items-center gap-2 transition-transform active:scale-95 ml-2">
+                            <Calculator size={18} /> 执行分配
+                        </button>
+                    </div>
                 </header>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -532,6 +631,102 @@ export default function App() {
                     </Card>
                 )}
             </div>
+
+            {/* 历史记录 Modal */}
+            {isHistoryModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 relative">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+                        
+                        <div className="px-6 py-4 border-b flex items-center justify-between bg-slate-50">
+                            <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
+                                <History className="text-indigo-600" />
+                                历史排品记录 (从 Supabase 加载)
+                            </h2>
+                            <button 
+                                onClick={() => setIsHistoryModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1 bg-slate-100">
+                            {isLoadingHistory ? (
+                                <div className="flex flex-col items-center justify-center h-48 text-slate-500">
+                                    <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mb-4"></div>
+                                    <p>正在从数据库加载记录...</p>
+                                </div>
+                            ) : historyData.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-48 text-slate-500 bg-white rounded-lg border border-dashed">
+                                    <AlertCircle size={32} className="mb-2 text-slate-400" />
+                                    <p>没有找到任何历史记录。</p>
+                                </div>
+                            ) : (
+                                <Card>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse table-fixed">
+                                            <thead>
+                                                <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
+                                                    <th className="p-3 w-16 text-center">序号</th>
+                                                    <th className="p-3 w-16 text-center">分类</th>
+                                                    <th className="p-3 w-24 text-center">预览</th>
+                                                    <th className="p-3 w-48">商品名称</th>
+                                                    <th className="p-3 w-16 text-center">可用数</th>
+                                                    <th className="p-3 w-28">商品编码</th>
+                                                    <th className="p-3 w-20">仓位</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 text-sm">
+                                                {historyData.map((item, idx) => {
+                                                    // 根据 category_type 设置颜色
+                                                    let colorClass = 'bg-slate-100 text-slate-800';
+                                                    if(item.category_type === 'welfare') colorClass = 'bg-blue-100 text-blue-800';
+                                                    if(item.category_type === 'orphan') colorClass = 'bg-purple-100 text-purple-800';
+                                                    if(item.category_type === 'unsaleable') colorClass = 'bg-orange-100 text-orange-800';
+
+                                                    return (
+                                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="p-2 font-mono font-bold text-center text-slate-700">
+                                                                #{item.product_id}
+                                                            </td>
+                                                            <td className="p-2 text-center">
+                                                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${colorClass}`}>
+                                                                    {item.category}
+                                                                </span>
+                                                            </td>
+                                                            <td className="p-2 text-center">
+                                                                {item.image_url ? (
+                                                                    <img
+                                                                        src={item.image_url}
+                                                                        alt=""
+                                                                        className="w-20 h-20 object-cover rounded border mx-auto"
+                                                                        referrerPolicy="no-referrer"
+                                                                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                                                    />
+                                                                ) : null}
+                                                                <div className={`w-20 h-20 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image_url ? 'hidden' : 'flex'}`}>
+                                                                    <ImageIcon className="text-slate-300" size={28} />
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-2 font-medium text-sm">{item.product_name}</td>
+                                                            <td className="p-2 text-center font-bold text-blue-600">{item.stock}</td>
+                                                            <td className="p-2 font-mono text-xs text-slate-500">{item.product_code}</td>
+                                                            <td className="p-2 text-slate-600 text-xs">{item.location}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 text-xs text-slate-500 border-t text-right">
+                                        共计 {historyData.length} 条排品记录 (上传于: {historyData[0] ? new Date(historyData[0].created_at).toLocaleString() : '-'})
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
