@@ -141,19 +141,14 @@ const DropZone = ({ title, type, onFileLoaded, data, onClear, colorClass, icon: 
     );
 };
 
-// --- 辅助函数：处理图片加载错误，尝试使用图片代理绕过防盗链或非 HTTPS 限制 ---
-const handleImageError = (e, originalSrc) => {
-    // 避免无限循环或处理 data/blob 链接
-    if (!originalSrc || originalSrc.startsWith('data:') || originalSrc.startsWith('blob:') || (e.target.src && e.target.src.includes('weserv.nl'))) {
-        e.target.style.display = 'none';
-        if (e.target.nextSibling && e.target.nextSibling.tagName === 'DIV') {
-            e.target.nextSibling.style.display = 'flex';
-        }
-        return;
-    }
-    let targetUrl = originalSrc;
-    if (targetUrl.startsWith('//')) targetUrl = 'https:' + targetUrl;
-    e.target.src = `https://images.weserv.nl/?url=${encodeURIComponent(targetUrl)}`;
+// --- 辅助函数：通过代理加载图片，彻底绕过移动端防盗链和 Mixed Content ---
+const proxyImg = (url) => {
+    if (!url) return '';
+    let src = url;
+    if (src.startsWith('//')) src = 'https:' + src;
+    // 已经是代理链接或 data/blob 链接则不再处理
+    if (src.includes('weserv.nl') || src.startsWith('data:') || src.startsWith('blob:')) return src;
+    return `https://images.weserv.nl/?url=${encodeURIComponent(src)}`;
 };
 
 export default function App() {
@@ -763,17 +758,15 @@ export default function App() {
                                             <td className="p-2 text-center">
                                                 {item.image ? (
                                                     <img
-                                                        src={item.image.startsWith('//') ? 'https:' + item.image : item.image}
+                                                        src={proxyImg(item.image)}
                                                         alt=""
                                                         className="w-20 h-20 object-cover rounded border mx-auto cursor-pointer hover:opacity-80 transition-opacity"
-                                                        onClick={(e) => setZoomedImage(e.target.src)}
-                                                        referrerPolicy="no-referrer"
-                                                        onError={(e) => handleImageError(e, item.image)}
+                                                        onClick={() => setZoomedImage(proxyImg(item.image))}
+                                                        onError={(e) => { e.target.style.display = 'none'; if(e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}
                                                     />
                                                 ) : null}
                                                 <div 
-                                                    className={`w-20 h-20 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image ? 'hidden' : 'flex'} ${item.image ? 'cursor-pointer hover:opacity-80' : ''}`}
-                                                    onClick={() => item.image && setZoomedImage(item.image.startsWith('//') ? 'https:' + item.image : item.image)}
+                                                    className={`w-20 h-20 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image ? 'hidden' : 'flex'}`}
                                                 >
                                                     <ImageIcon className="text-slate-300" size={28} />
                                                 </div>
@@ -939,17 +932,15 @@ export default function App() {
                                                             <td className="p-2 text-center">
                                                                 {item.image_url ? (
                                                                     <img
-                                                                        src={item.image_url.startsWith('//') ? 'https:' + item.image_url : item.image_url}
+                                                                        src={proxyImg(item.image_url)}
                                                                         alt=""
                                                                         className="w-20 h-20 object-cover rounded border mx-auto cursor-pointer hover:opacity-80 transition-opacity"
-                                                                        onClick={(e) => setZoomedImage(e.target.src)}
-                                                                        referrerPolicy="no-referrer"
-                                                                        onError={(e) => handleImageError(e, item.image_url)}
+                                                                        onClick={() => setZoomedImage(proxyImg(item.image_url))}
+                                                                        onError={(e) => { e.target.style.display = 'none'; if(e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}
                                                                     />
                                                                 ) : null}
                                                                 <div 
-                                                                    className={`w-20 h-20 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image_url ? 'hidden' : 'flex'} ${item.image_url ? 'cursor-pointer hover:opacity-80' : ''}`}
-                                                                    onClick={() => item.image_url && setZoomedImage(item.image_url.startsWith('//') ? 'https:' + item.image_url : item.image_url)}
+                                                                    className={`w-20 h-20 bg-slate-100 rounded border items-center justify-center mx-auto ${item.image_url ? 'hidden' : 'flex'}`}
                                                                 >
                                                                     <ImageIcon className="text-slate-300" size={28} />
                                                                 </div>
@@ -982,11 +973,9 @@ export default function App() {
                 >
                     <img 
                         src={zoomedImage} 
-                        alt="Zoomed" 
-                        referrerPolicy="no-referrer"
+                        alt="" 
                         className="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-default" 
                         onClick={(e) => e.stopPropagation()} 
-                        onError={(e) => handleImageError(e, zoomedImage)}
                     />
                     <button 
                         className="absolute top-4 right-4 text-white bg-black bg-opacity-50 hover:bg-opacity-80 rounded-full p-2 transition-colors cursor-pointer"
