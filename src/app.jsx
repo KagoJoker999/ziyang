@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, PackageOpen, Tag, Layers, UploadCloud, History, X } from 'lucide-react';
+import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, PackageOpen, Tag, Layers, UploadCloud, History, X, MapPin } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 // --- 中文键名到内部类型的映射 ---
@@ -160,11 +160,11 @@ export default function App() {
     const [results, setResults] = useState([]);
     const [stats, setStats] = useState(null);
     
-    // Supabase 相关状态
     const [isUploading, setIsUploading] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [historyData, setHistoryData] = useState([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
 
     // --- 加载 XLSX 库 ---
     useEffect(() => {
@@ -443,6 +443,91 @@ export default function App() {
         }
     };
 
+    // --- Supabase 仓位批量更新逻辑 ---
+    const handleLocationUpdate = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!window.XLSX) {
+            alert("Excel解析库尚未加载完成，请稍候...");
+            e.target.value = '';
+            return;
+        }
+
+        setIsUpdatingLocation(true);
+        const reader = new FileReader();
+
+        reader.onload = async (eEvent) => {
+            try {
+                const data = new Uint8Array(eEvent.target.result);
+                const workbook = window.XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = window.XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                const getFieldLocal = (row, ...keys) => {
+                    for (let k of keys) {
+                        if (row[k] !== undefined && row[k] !== "") return String(row[k]).trim();
+                    }
+                    return "";
+                };
+
+                const updates = [];
+                for (let row of jsonData) {
+                    let name = getFieldLocal(row, '商品名称', 'Name', 'Title', 'name', 'title');
+                    let location = getFieldLocal(row, '主仓位', 'Location', '仓位', 'location');
+                    if (name && location) {
+                        // 确保和系统中提取的格式保持一致
+                        const match = name.match(/「([^」]*)」/);
+                        if (match) {
+                            name = `「${match[1]}」`;
+                        }
+                        updates.push({ name, location });
+                    }
+                }
+
+                if (updates.length === 0) {
+                    throw new Error("表格中未找到有效的「商品名称」和「仓位」列");
+                }
+
+                let successCount = 0;
+                let failCount = 0;
+                // 为了避免瞬时过大的并发引起问题，此处使用串行请求进行逐条更新
+                for (const update of updates) {
+                    const { error } = await supabase
+                        .from('zhiyang_allocations')
+                        .update({ location: update.location })
+                        .eq('product_name', update.name);
+                    
+                    if (!error) {
+                        successCount++;
+                    } else {
+                        console.error('更新失败', update.name, error);
+                        failCount++;
+                    }
+                }
+
+                let msg = `仓位更新完成！\n成功发送更新请求：${successCount} 条`;
+                if (failCount > 0) msg += `\n失败：${failCount} 条`;
+                alert(msg);
+
+            } catch (err) {
+                alert(`仓位更新错误: ${err.message}`);
+            } finally {
+                setIsUpdatingLocation(false);
+                e.target.value = ''; // 重置 file input
+            }
+        };
+
+        reader.onerror = () => {
+            alert("文件读取失败");
+            setIsUpdatingLocation(false);
+            e.target.value = '';
+        };
+
+        reader.readAsArrayBuffer(file);
+    };
+
     // 配置加载中或错误状态
     if (!configLoaded) {
         return (
@@ -482,6 +567,12 @@ export default function App() {
                     </div>
                     
                     <div className="flex items-center gap-2">
+                        <label className={`px-4 py-2 rounded-lg shadow-sm font-medium flex items-center gap-2 transition-transform cursor-pointer ${isUpdatingLocation ? 'bg-emerald-300 text-white cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'}`}>
+                            <MapPin size={18} />
+                            {isUpdatingLocation ? '更新中...' : '仓位更新'}
+                            <input type="file" accept=".xlsx, .xls" className="hidden" disabled={isUpdatingLocation} onChange={handleLocationUpdate} />
+                        </label>
+                        
                         <button 
                             onClick={fetchHistory}
                             className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-2 rounded-lg shadow-sm font-medium flex items-center gap-2 transition-transform active:scale-95"
