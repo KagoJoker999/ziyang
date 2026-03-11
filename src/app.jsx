@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, PackageOpen, Tag, Layers, CloudUpload, History, X } from 'lucide-react';
+import { Upload, FileSpreadsheet, Calculator, Trash2, Image as ImageIcon, AlertCircle, PackageOpen, Tag, Layers, UploadCloud, History, X } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 // --- 中文键名到内部类型的映射 ---
@@ -494,7 +494,7 @@ export default function App() {
                             disabled={isUploading || results.length === 0}
                             className={`px-4 py-2 rounded-lg shadow-sm font-medium flex items-center gap-2 transition-transform ${isUploading || results.length === 0 ? 'bg-indigo-300 cursor-not-allowed text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'}`}
                         >
-                            <CloudUpload size={18} /> {isUploading ? '上传中...' : '保存排品结果'}
+                            <UploadCloud size={18} /> {isUploading ? '上传中...' : '保存排品结果'}
                         </button>
 
                         <button onClick={calculate} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md font-medium flex items-center gap-2 transition-transform active:scale-95 ml-2">
