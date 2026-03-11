@@ -655,7 +655,7 @@ export default function App() {
                             <UploadCloud size={18} /> {isUploading ? '上传中...' : '保存结果'}
                         </button>
 
-                        <button onClick={calculate} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md font-medium flex items-center gap-2 transition-transform active:scale-95 ml-2">
+                        <button onClick={calculate} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md font-medium flex items-center gap-2 transition-transform active:scale-95">
                             <Calculator size={18} /> 执行分配
                         </button>
                     </div>
