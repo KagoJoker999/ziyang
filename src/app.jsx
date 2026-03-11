@@ -522,12 +522,20 @@ export default function App() {
                     return "";
                 };
 
+                // 专门获取仓位字段：允许值为空（只要列存在即可）
+                const getLocationField = (row, ...keys) => {
+                    for (let k of keys) {
+                        if (row[k] !== undefined) return String(row[k]).trim();
+                    }
+                    return null; // null 表示列不存在
+                };
+
                 const updates = [];
                 for (let row of jsonData) {
                     let name = getFieldLocal(row, '商品名称', 'Name', 'Title', 'name', 'title');
-                    let location = getFieldLocal(row, '主仓位', 'Location', '仓位', 'location');
-                    if (name && location) {
-                        // 确保和系统中提取的格式保持一致
+                    let location = getLocationField(row, '主仓位', 'Location', '仓位', 'location');
+                    if (name && location !== null) {
+                        // 只要商品名称存在，就更新仓位（即使仓位为空）
                         const match = name.match(/「([^」]*)」/);
                         if (match) {
                             name = `「${match[1]}」`;
